@@ -1,64 +1,105 @@
+'A game of tic-tac-toe'
+
 import streamlit as st
+import numpy as np
+import gameboard as sg
 
-# Set page configuration
-st.set_page_config(page_title="Tic-Tac-Toe", layout="centered")
+st.title('Tic Tac Toe')
 
-# Initialize game state
-if "board" not in st.session_state:
-    st.session_state.board = [""] * 9
-    st.session_state.current_player = "X"
-    st.session_state.winner = None
-
-# Winning combinations
-winning_combos = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8],
-    [0, 3, 6], [1, 4, 7], [2, 5, 8],
-    [0, 4, 8], [2, 4, 6]
-]
-
-# Check winner
-def check_winner():
-    board = st.session_state.board
-    for combo in winning_combos:
-        a, b, c = combo
-        if board[a] == board[b] == board[c] != "":
-            st.session_state.winner = board[a]
-            return True
-    return False
-
-# Reset game
 def reset_game():
-    st.session_state.board = [""] * 9
-    st.session_state.current_player = "X"
-    st.session_state.winner = None
+    st.session_state.victory = 0
+    st.session_state.game = sg.DEFAULT(3,3)
+st.button('Reset game', on_click=reset_game)
 
-# Title
-st.markdown("<h1 style='text-align:center;'>🎮 Tic-Tac-Toe</h1>", unsafe_allow_html=True)
+def check_win(board):
+    # Check rows
+    for i in range(3):
+        if all(board[i][j]['player'] == 1 for j in range(3)):
+            return 1
+        if all(board[i][j]['player'] == 2 for j in range(3)):
+            return 2
+    # Check columns
+    for j in range(3):
+        if all(board[i][j]['player'] == 1 for i in range(3)):
+            return 1
+        if all(board[i][j]['player'] == 2 for i in range(3)):
+            return 2
+    # Check diagonals
+    if all(board[i][i]['player'] == 1 for i in range(3)):
+        return 1
+    if all(board[i][i]['player'] == 2 for i in range(3)):
+        return 2
+    if all(board[i][2-i]['player'] == 1 for i in range(3)):
+        return 1
+    if all(board[i][2-i]['player'] == 2 for i in range(3)):
+        return 2
+    if all(board[i][j]['player'] != 0 for i in range(3) for j in range(3)):
+        return -1
+    return 0
 
-# Show game status
-if st.session_state.winner:
-    st.success(f"🎉 Player {st.session_state.winner} wins!")
-elif "" not in st.session_state.board:
-    st.warning("😮 It's a Draw!")
-else:
-    st.info(f"🟢 Player {st.session_state.current_player}'s turn")
+def initialize():
+    if 'color1' not in st.session_state:
+        st.session_state.color1 = '#3A5683'
+        st.session_state.alpha1 = 255
+    if 'color2' not in st.session_state:
+        st.session_state.color2 = '#73956F'
+        st.session_state.alpha2 = 255
+    if 'game' not in st.session_state:
+        st.session_state.player1 = 'Player 1'
+        st.session_state.player2 = 'Player 2'
+        st.session_state.game = sg.DEFAULT(3,3)
+        st.session_state.victory = 0
 
-# Game board
-for row in range(3):
-    cols = st.columns(3)
-    for col in range(3):
-        idx = row * 3 + col
-        btn_label = st.session_state.board[idx] or " "
-        if st.session_state.board[idx] != "" or st.session_state.winner:
-            cols[col].button(btn_label, key=f"btn-{idx}", disabled=True)
-        else:
-            if cols[col].button(btn_label, key=f"btn-{idx}"):
-                # Update board
-                st.session_state.board[idx] = st.session_state.current_player
-                if not check_winner():
-                    st.session_state.current_player = "O" if st.session_state.current_player == "X" else "X"
-                st.experimental_rerun()
+initialize()
 
-# Reset button
-st.divider()
-st.button("🔄 Reset Game", on_click=reset_game, use_container_width=True)
+if st.session_state.player1 == '':
+    st.session_state.player1 = 'Player 1'
+if st.session_state.player2 == '':
+    st.session_state.player2 = 'Player 2'
+
+color1 = st.session_state.color1
+color2 = st.session_state.color2
+
+with st.sidebar:
+    st.header("Player Settings")
+
+    def reset_colors():
+        del st.session_state.color1
+        del st.session_state.color2
+        del st.session_state.alpha1
+        del st.session_state.alpha2
+    st.button('reset colors',on_click = reset_colors)
+
+    # Set player info
+
+    player1 = st.text_input('Player 1', key='player1')
+    color1 = st.color_picker('❄️ Player 1 Color', key='color1')
+    alpha1 = st.slider("Player 1 Alpha", 30, 255, key='alpha1')
+    st.write('---')
+    player2 = st.text_input('Player 2', key='player2')
+    color2 = st.color_picker('🎈 Player 2 Color', key='color2')
+    alpha2 = st.slider("Player 2 Alpha", 30, 255, key='alpha2')
+
+    color1 = color1+f'{alpha1:02x}'
+    color1 = color1.upper()
+
+    color2 = color2+f'{alpha2:02x}'
+    color2 = color2.upper()
+
+    players = {player1:color1,player2:color2}
+
+st.session_state.victory = check_win(st.session_state.game)
+
+if st.session_state.victory != 0:
+    for i in range(3):
+        for j in range(3):
+            st.session_state.game[i][j]['enabled'] = False
+
+if st.session_state.victory == 1:
+    st.snow()
+if st.session_state.victory == 2:
+    st.balloons()
+if st.session_state.victory == -1:
+    st.success('It\'s a tie! Please click reset to play again.')
+
+sg.gameboard(3,3, players, board_state = st.session_state.game,  key='game')
