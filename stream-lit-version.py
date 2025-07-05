@@ -39,7 +39,7 @@ def reset_game():
 st.title("🎮 Tic-Tac-Toe")
 
 if st.session_state.winner:
-    st.success(f"🎉 Player {st.session_state.winner} wins!")
+    st.success(f"Player {st.session_state.winner} wins!")
 else:
     st.info(f"Player {st.session_state.current_player}'s turn")
 
@@ -47,22 +47,10 @@ for row in range(3):
     cols = st.columns(3)
     for col in range(3):
         index = row * 3 + col
-        btn_label = st.session_state.board[index] or " "
-        btn_color = "background-color:lightgreen;" if index in st.session_state.winning_combo else ""
-        with cols[col]:
-            if st.button(btn_label, key=index):
-                handle_click(index)
-            st.markdown(f"""
-                <style>
-                div[data-testid="column"] > div > button[title="{btn_label}"] {{
-                    {btn_color}
-                    font-size: 24px;
-                    height: 60px;
-                    width: 100%;
-                }}
-                </style>
-            """, unsafe_allow_html=True)
+        button_label = st.session_state.board[index] or " "
+        button_color = "✅" if index in st.session_state.winning_combo else button_label
+        if cols[col].button(button_color, key=f"cell-{index}", use_container_width=True, help=f"Cell {index+1}"):
+            handle_click(index)
 
 st.markdown("---")
-if st.button("🔁 Reset Game"):
-    reset_game()
+st.button("🔁 Reset Game", on_click=reset_game, use_container_width=True)
