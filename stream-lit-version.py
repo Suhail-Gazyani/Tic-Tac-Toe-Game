@@ -9,9 +9,9 @@ if "board" not in st.session_state:
     st.session_state.winning_combo = []
 
 winning_combos = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8],  # Rows
-    [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Columns
-    [0, 4, 8], [2, 4, 6]              # Diagonals
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
 ]
 
 def check_winner():
@@ -24,10 +24,10 @@ def check_winner():
             return
 
 def handle_click(index):
-    if st.session_state.board[index] == "" and st.session_state.winner is None:
+    if st.session_state.board[index] == "" and not st.session_state.winner:
         st.session_state.board[index] = st.session_state.current_player
         check_winner()
-        if st.session_state.winner is None:
+        if not st.session_state.winner:
             st.session_state.current_player = "O" if st.session_state.current_player == "X" else "X"
 
 def reset_game():
@@ -43,13 +43,25 @@ if st.session_state.winner:
 else:
     st.info(f"Player {st.session_state.current_player}'s turn")
 
-cols = st.columns(3)
-for i in range(9):
-    btn_style = "background-color:lightgreen;" if i in st.session_state.winning_combo else ""
-    with cols[i % 3]:
-        if st.button(st.session_state.board[i] or " ", key=i, help=f"Cell {i+1}"):
-            handle_click(i)
-        st.markdown(f"<style>div[data-testid='column'] button{{ {btn_style} }}</style>", unsafe_allow_html=True)
+for row in range(3):
+    cols = st.columns(3)
+    for col in range(3):
+        index = row * 3 + col
+        btn_label = st.session_state.board[index] or " "
+        btn_color = "background-color:lightgreen;" if index in st.session_state.winning_combo else ""
+        with cols[col]:
+            if st.button(btn_label, key=index):
+                handle_click(index)
+            st.markdown(f"""
+                <style>
+                div[data-testid="column"] > div > button[title="{btn_label}"] {{
+                    {btn_color}
+                    font-size: 24px;
+                    height: 60px;
+                    width: 100%;
+                }}
+                </style>
+            """, unsafe_allow_html=True)
 
 st.markdown("---")
 if st.button("🔁 Reset Game"):
