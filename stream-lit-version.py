@@ -1,105 +1,66 @@
-'A game of tic-tac-toe'
-
 import streamlit as st
 import numpy as np
-import gameboard as sg
 
-st.title('Tic Tac Toe')
 
-def reset_game():
-    st.session_state.victory = 0
-    st.session_state.game = sg.DEFAULT(3,3)
-st.button('Reset game', on_click=reset_game)
+# From: https://stackoverflow.com/questions/39922967/python-determine-tic-tac-toe-winner
+def checkRows(board):
+    for row in board:
+        if len(set(row)) == 1:
+            return row[0]
+    return None
 
-def check_win(board):
-    # Check rows
-    for i in range(3):
-        if all(board[i][j]['player'] == 1 for j in range(3)):
-            return 1
-        if all(board[i][j]['player'] == 2 for j in range(3)):
-            return 2
-    # Check columns
-    for j in range(3):
-        if all(board[i][j]['player'] == 1 for i in range(3)):
-            return 1
-        if all(board[i][j]['player'] == 2 for i in range(3)):
-            return 2
-    # Check diagonals
-    if all(board[i][i]['player'] == 1 for i in range(3)):
-        return 1
-    if all(board[i][i]['player'] == 2 for i in range(3)):
-        return 2
-    if all(board[i][2-i]['player'] == 1 for i in range(3)):
-        return 1
-    if all(board[i][2-i]['player'] == 2 for i in range(3)):
-        return 2
-    if all(board[i][j]['player'] != 0 for i in range(3) for j in range(3)):
-        return -1
-    return 0
 
-def initialize():
-    if 'color1' not in st.session_state:
-        st.session_state.color1 = '#3A5683'
-        st.session_state.alpha1 = 255
-    if 'color2' not in st.session_state:
-        st.session_state.color2 = '#73956F'
-        st.session_state.alpha2 = 255
-    if 'game' not in st.session_state:
-        st.session_state.player1 = 'Player 1'
-        st.session_state.player2 = 'Player 2'
-        st.session_state.game = sg.DEFAULT(3,3)
-        st.session_state.victory = 0
+def checkDiagonals(board):
+    if len(set([board[i][i] for i in range(len(board))])) == 1:
+        return board[0][0]
+    if len(set([board[i][len(board) - i - 1] for i in range(len(board))])) == 1:
+        return board[0][len(board) - 1]
+    return None
 
-initialize()
 
-if st.session_state.player1 == '':
-    st.session_state.player1 = 'Player 1'
-if st.session_state.player2 == '':
-    st.session_state.player2 = 'Player 2'
+def checkWin(board):
+    # transposition to check rows, then columns
+    for newBoard in [board, np.transpose(board)]:
+        result = checkRows(newBoard)
+        if result:
+            return result
+    return checkDiagonals(board)
 
-color1 = st.session_state.color1
-color2 = st.session_state.color2
 
-with st.sidebar:
-    st.header("Player Settings")
+def tictactoe():
+    st.write("")
 
-    def reset_colors():
-        del st.session_state.color1
-        del st.session_state.color2
-        del st.session_state.alpha1
-        del st.session_state.alpha2
-    st.button('reset colors',on_click = reset_colors)
+    # Initialize state.
+    if "board" not in st.session_state:
+        st.session_state.board = np.full((3, 3), ".", dtype=str)
+        st.session_state.next_player = "X"
+        st.session_state.winner = None
 
-    # Set player info
+    # Define callbacks to handle button clicks.
+    def handle_click(i, j):
+        if not st.session_state.winner:
+            st.session_state.board[i, j] = st.session_state.next_player
+            st.session_state.next_player = (
+                "O" if st.session_state.next_player == "X" else "X"
+            )
+            winner = checkWin(st.session_state.board)
+            if winner != ".":
+                st.session_state.winner = winner
 
-    player1 = st.text_input('Player 1', key='player1')
-    color1 = st.color_picker('❄️ Player 1 Color', key='color1')
-    alpha1 = st.slider("Player 1 Alpha", 30, 255, key='alpha1')
-    st.write('---')
-    player2 = st.text_input('Player 2', key='player2')
-    color2 = st.color_picker('🎈 Player 2 Color', key='color2')
-    alpha2 = st.slider("Player 2 Alpha", 30, 255, key='alpha2')
+    # Show one button for each field.
+    for i, row in enumerate(st.session_state.board):
+        cols = st.columns([0.1, 0.1, 0.1, 0.7])
+        for j, field in enumerate(row):
+            cols[j].button(
+                field,
+                key=f"{i}-{j}",
+                on_click=handle_click,
+                args=(i, j),
+            )
 
-    color1 = color1+f'{alpha1:02x}'
-    color1 = color1.upper()
+    if st.session_state.winner:
+        st.success(f"Congrats! {st.session_state.winner} won the game! 🎈")
 
-    color2 = color2+f'{alpha2:02x}'
-    color2 = color2.upper()
 
-    players = {player1:color1,player2:color2}
-
-st.session_state.victory = check_win(st.session_state.game)
-
-if st.session_state.victory != 0:
-    for i in range(3):
-        for j in range(3):
-            st.session_state.game[i][j]['enabled'] = False
-
-if st.session_state.victory == 1:
-    st.snow()
-if st.session_state.victory == 2:
-    st.balloons()
-if st.session_state.victory == -1:
-    st.success('It\'s a tie! Please click reset to play again.')
-
-sg.gameboard(3,3, players, board_state = st.session_state.game,  key='game')
+if __name__ == '__main__':
+    tictactoe()
